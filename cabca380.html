@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html ng-app="ionicApp">
 <head>
@@ -35,7 +36,25 @@
 <div id="debug"></div>
 
 <div class="bar-footer" style="bottom:0;position:absolute;width:100%">
-
+	  <div class="item item-input-inset">
+	    <label class="item-input-wrapper">
+	      <input type="text" placeholder="message" id="message">
+	    </label>
+	    <button class="button button-small button-royal" id="send2uart">
+	      Send2Uart
+	    </button>
+	  </div>
+	<div id="temp"></div>
+	<div id="hum"></div>
+	<div class="button-bar">
+	  <a class="button" style="background:red; color:white" id="led_red">Red</a>
+	  <a class="button" style="background:green; color:white" id="led_green">Green</a>
+	  <a class="button" style="background:blue; color:white" id="led_blue">Blue</a>
+	</div>
+	<div class="button-bar">
+	  <a class="button" style="background:white; color:black" id="led_on">On</a>
+	  <a class="button" style="background:black; color:white" id="led_off">Off</a>
+	</div>
 </div>
 
 <script src="http://api.easylink.io/assets/js/mqttws31.js"></script>
@@ -89,26 +108,64 @@ function ez_connect(device_id) {
             message.destinationName = topic;
             client.send(message);
         }
-        console.log("App connected!");
+        console.log("onConnect");
         client.subscribe(device_id+'/out/#', {qos: 0});
     }
     function onConnectionLost(responseObject) {
         if (responseObject.errorCode !== 0)
-            console.log("App connection lost:"+responseObject.errorMessage);
+            console.log("onConnectionLost:"+responseObject.errorMessage);
     }
     function onMessageArrived(message) {
-    	if  (message.destinationName == device_id + '/out/_online') {
-    		if (message.payloadString == '1')  {
-    			console.log("Device online.");
-    		}
-    		else {
-    			console.log("Device offline.");
-    		}
-    	}
-    	else {
-    		console.log(message.payloadString);
-    	}
+        console.log(message.destinationName + ': ' + message.payloadString);
+        if ( message.destinationName == (device_id + '/out/read') ) {
+        	var json_obj = JSON.parse(message.payloadString); 
+        	if ( json_obj != null ) {
+        		for (var k in json_ojb) {
+        			if ( k == '17') {
+        		      		document.getElementById('temp').innerHTML = 'T: ' + json_obj[k];
+        			}
+        			else if ( k ==  '19'){
+        				document.getElementById('temp').innerHTML = 'H: ' + json_obj[k];
+        			}
+        			else{}
+        		};
+        	}
+        }
     }
+    var inputMessage = document.getElementById('message');
+     function send2uart() {
+        if ( inputMessage.value.length == 0 ) return;
+        client.publish(device_id+'/in/write', '{"11":"' + inputMessage.value + '"}');
+        console.log(inputMessage.value);
+        inputMessage.value = '';
+    }
+    document.querySelector('#send2uart').addEventListener('touchstart', send2uart);
+    document.querySelector('#send2uart').addEventListener('click', send2uart);
+    function led_on() {
+        client.publish(device_id+'/in/write', '{"rgbled-switch":true}');
+    }
+    document.querySelector('#led_on').addEventListener('touchstart', led_on);
+    document.querySelector('#led_on').addEventListener('click', led_on);
+    function led_off() {
+        client.publish(device_id+'/in/write', '{"rgbled-switch":false}');
+    }
+    document.querySelector('#led_off').addEventListener('touchstart', led_off);
+    document.querySelector('#led_off').addEventListener('click', led_off);
+    function led_red() {
+        client.publish(device_id+'/in/write', '{"rgbled-switch":true,"rgbled-hues":0, "rgbled-saturation":100, "rgbled-brightness":100}');
+    }
+    document.querySelector('#led_red').addEventListener('touchstart', led_red);
+    document.querySelector('#led_red').addEventListener('click', led_red);
+    function led_green() {
+        client.publish(device_id+'/in/write', '{"rgbled-switch":true,"rgbled-hues":120, "rgbled-saturation":100, "rgbled-brightness":100}');
+    }
+    document.querySelector('#led_green').addEventListener('touchstart', led_green);
+    document.querySelector('#led_green').addEventListener('click', led_green);
+    function led_blue() {
+        client.publish(device_id+'/in/write', '{"rgbled-switch":true,"rgbled-hues":240, "rgbled-saturation":100, "rgbled-brightness":100}');
+    }
+    document.querySelector('#led_blue').addEventListener('touchstart', led_blue);
+    document.querySelector('#led_blue').addEventListener('click', led_blue);
 }
 </script>
 </body>
